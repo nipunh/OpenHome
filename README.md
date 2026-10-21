@@ -1,4 +1,4 @@
-# OpenHome (working name)
+# OpenHome
 
 An open-source, local-first smart-home interface for Zigbee devices. The project aims to provide a friendly home dashboard, room organisation, and device controls using established open-source components.
 
