@@ -1,0 +1,9 @@
+{
+  "name": "@openhome/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "echo 'Contracts are source-first for now'", "typecheck": "echo 'TODO: add schema validation'", "test": "node --test", "lint": "echo 'TODO: configure ESLint'" }
+}

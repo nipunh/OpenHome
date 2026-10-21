@@ -1,0 +1,55 @@
+name: openhome
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      # Localhost only by default. Configure authenticated LAN access before changing this.
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/version' -C 1 -W 3 >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:2
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ./zigbee2mqtt:/app/data
+    devices:
+      # Linux example: set ZIGBEE_SERIAL_PORT=/dev/serial/by-id/<stable-device-id> in .env.
+      # This maps the host path to /dev/ttyUSB0 inside the container.
+      - ${ZIGBEE_SERIAL_PORT:-/dev/ttyUSB0}:/dev/ttyUSB0
+    # Docker Desktop USB serial passthrough is not guaranteed on macOS/Windows.
+
+  api:
+    build:
+      context: ..
+      dockerfile: services/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_started
+    environment:
+      OPENHOME_HOST: 0.0.0.0
+      OPENHOME_PORT: 3000
+      MQTT_URL: mqtt://mosquitto:1883
+      ZIGBEE2MQTT_BASE_TOPIC: zigbee2mqtt
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:

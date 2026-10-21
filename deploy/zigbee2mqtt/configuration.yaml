@@ -1,0 +1,20 @@
+version: 5
+mqtt:
+  base_topic: zigbee2mqtt
+  server: mqtt://mosquitto:1883
+serial:
+  # Set this to the device path visible inside the Zigbee2MQTT runtime.
+  # Example Linux stable path: /dev/serial/by-id/your-coordinator
+  port: /dev/ttyUSB0
+  adapter: ember
+advanced:
+  log_level: info
+  channel: 11
+  # Zigbee2MQTT generates network credentials on first setup when configured appropriately.
+  # Back up its data directory securely; never publish network keys.
+frontend:
+  enabled: true
+  port: 8080
+homeassistant:
+  enabled: false
+onboarding: false

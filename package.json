@@ -1,0 +1,16 @@
+{
+  "name": "openhome-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first open-source smart-home project",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.8.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:api": "pnpm --filter @openhome/api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  }
+}
