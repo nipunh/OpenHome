@@ -9,3 +9,13 @@ coverage/
 .data/
 data/
 coordinator_backup.json
+# Local development artifacts
+apps/ios/.expo/
+*.bak
+*.before-*
+*.rooms-backup
+
+# Generated iOS native dependencies and local Xcode settings
+apps/ios/ios/Pods/
+apps/ios/ios/.xcode.env.local
+apps/ios/ios/build/
