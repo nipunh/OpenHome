@@ -147,3 +147,35 @@ export function sendDeviceCommand(
     body: JSON.stringify(command),
   });
 }
+
+export type PairingResponse = {
+  pairing: boolean;
+  expiresAt: number | null;
+};
+
+export function startPairing(
+  baseUrl: string,
+  duration = 120,
+): Promise<PairingResponse> {
+  return request<PairingResponse>(baseUrl, '/pairing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ duration }),
+  });
+}
+
+export function stopPairing(
+  baseUrl: string,
+): Promise<PairingResponse> {
+  return request<PairingResponse>(baseUrl, '/pairing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'stop' }),
+  });
+}
+
+export function getPairingStatus(
+  baseUrl: string,
+): Promise<PairingResponse> {
+  return request<PairingResponse>(baseUrl, '/pairing');
+}
