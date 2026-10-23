@@ -1,11 +1,28 @@
-# iOS app (planned)
 
-The native client will be built with React Native + Expo after the API contracts stabilise.
+## iOS App
 
-Initial screens:
+The iOS client is being developed with **React Native and Expo**. It communicates with the OpenHome API over the local network rather than connecting directly to the MQTT broker.
+
+Current development focuses on a modern home dashboard and device controls.
+
+### Features
+
 - Home overview and room cards
-- Room device list
-- Light control (on/off and brightness when supported)
-- Setup/connectivity status
+- Room-based device lists
+- Light controls, including on/off and brightness where supported
+- Device state and connectivity feedback
+- Backend connection and setup status
 
-Do not store MQTT credentials or connect the app directly to the MQTT broker. The app should communicate with the backend over the local network and explain the iOS Local Network permission when required.
+Feature availability depends on the current implementation and the capabilities exposed by each device.
+
+### Networking and Security
+
+- The app communicates with the OpenHome backend over the local network.
+- MQTT broker credentials must never be stored in the mobile app.
+- The app must not connect directly to the MQTT broker.
+- Configure the API base URL to point to a backend reachable from the iOS device.
+- When iOS requests Local Network permission, explain why access is needed to discover or communicate with services on the home network.
+
+### Development Status
+
+The mobile interface is under active development. Screens and device controls may evolve as the API contracts and application architecture mature.
