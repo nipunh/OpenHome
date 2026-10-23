@@ -32,6 +32,8 @@ type DeviceCommand = {
 let mqttClient: MqttClient | undefined;
 let mqttConnected = false;
 let deviceInventory: ZigbeeDevice[] = [];
+let pairingActive = false;
+let pairingExpiresAt: number | null = null;
 
 const latestDeviceState = new Map<string, unknown>();
 
@@ -151,10 +153,19 @@ if (mqttUrl) {
     mqttConnected = true;
 
     mqttClient?.subscribe(
-      [`${baseTopic}/+`, `${baseTopic}/bridge/devices`],
+      [
+        `${baseTopic}/+`,
+        `${baseTopic}/bridge/devices`,
+        `${baseTopic}/bridge/info`,
+      ],
       (error) => {
         if (error) {
           console.error('MQTT subscribe failed:', error.message);
+        } else {
+          mqttClient?.publish(
+            `${baseTopic}/bridge/request/info`,
+            '{}',
+          );
         }
       },
     );
@@ -174,6 +185,28 @@ if (mqttUrl) {
 
   mqttClient.on('message', (topic, payload) => {
     const message = payload.toString();
+
+    if (topic === `${baseTopic}/bridge/info`) {
+      try {
+        const info = JSON.parse(message) as {
+          permit_join?: unknown;
+          permit_join_end?: unknown;
+        };
+
+        if (typeof info.permit_join === 'boolean') {
+          pairingActive = info.permit_join;
+          pairingExpiresAt =
+            info.permit_join &&
+              typeof info.permit_join_end === 'number' &&
+              info.permit_join_end > Date.now()
+              ? info.permit_join_end
+              : null;
+        }
+      } catch {
+        console.error('Unable to parse Zigbee2MQTT bridge info');
+      }
+      return;
+    }
 
     if (topic === `${baseTopic}/bridge/devices`) {
       try {
@@ -382,7 +415,7 @@ function loadRoomStore(): RoomStore {
   try {
     const value = JSON.parse(readFileSync(roomDataFile, 'utf8')) as RoomStore;
     if (Array.isArray(value.rooms) && value.assignments &&
-        typeof value.assignments === 'object') return value;
+      typeof value.assignments === 'object') return value;
   } catch {
     // Missing file means a new, empty room store.
   }
@@ -411,6 +444,90 @@ const server = createServer((request, response) => {
   response.setHeader('x-content-type-options', 'nosniff');
   response.setHeader('cache-control', 'no-store');
   const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+
+  if (request.method === 'POST' && url.pathname === '/pairing') {
+    if (!mqttUrl || !mqttClient || !mqttConnected) {
+      sendJson(response, 503, { error: 'mqtt_unavailable' });
+      return;
+    }
+
+    let body = '';
+    request.on('data', (chunk: Buffer) => {
+      body += chunk.toString();
+    });
+
+    request.on('end', () => {
+      let duration = 120;
+
+      try {
+        if (body) {
+          const input = JSON.parse(body);
+          if (input.action === 'stop') {
+            duration = 0;
+          } else if (input.duration !== undefined) {
+            if (
+              !Number.isInteger(input.duration) ||
+              input.duration < 30 ||
+              input.duration > 300
+            ) {
+              sendJson(response, 400, {
+                error: 'invalid_duration',
+                minimum: 30,
+                maximum: 300,
+              });
+              return;
+            }
+            duration = input.duration;
+          }
+        }
+      } catch {
+        sendJson(response, 400, { error: 'invalid_json' });
+        return;
+      }
+
+      mqttClient!.publish(
+        `${baseTopic}/bridge/request/permit_join`,
+        JSON.stringify({
+          time: duration,
+          ...(duration > 0 ? { device: null } : {}),
+        }),
+        { qos: 1 },
+        (error) => {
+          if (error) {
+            sendJson(response, 502, { error: 'mqtt_publish_failed' });
+            return;
+          }
+
+          pairingActive = duration > 0;
+          pairingExpiresAt = duration > 0
+            ? Date.now() + duration * 1000
+            : null;
+
+          sendJson(response, 202, {
+            pairing: pairingActive,
+            duration,
+            expiresAt: pairingExpiresAt,
+          });
+        },
+      );
+    });
+
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/pairing') {
+    if (pairingExpiresAt !== null && Date.now() >= pairingExpiresAt) {
+      pairingActive = false;
+      pairingExpiresAt = null;
+    }
+
+    sendJson(response, 200, {
+      pairing: pairingActive,
+      expiresAt: pairingExpiresAt,
+    });
+    return;
+  }
+
   if (request.method === 'GET' && url.pathname === '/health') {
     sendJson(response, 200, {
       status: 'ok',
@@ -450,19 +567,19 @@ const server = createServer((request, response) => {
           'switch',
         ]),
         supportsBrightness: hasExpose(device.definition?.exposes, [
-  'brightness',
-]),
-supportsColorTemperature: hasExpose(device.definition?.exposes, [
-  'color_temp',
-]),
-brightnessRange: getNumericExposeRange(
-  device.definition?.exposes,
-  'brightness',
-),
-colorTemperatureRange: getNumericExposeRange(
-  device.definition?.exposes,
-  'color_temp',
-),
+          'brightness',
+        ]),
+        supportsColorTemperature: hasExpose(device.definition?.exposes, [
+          'color_temp',
+        ]),
+        brightnessRange: getNumericExposeRange(
+          device.definition?.exposes,
+          'brightness',
+        ),
+        colorTemperatureRange: getNumericExposeRange(
+          device.definition?.exposes,
+          'color_temp',
+        ),
         rawState: latestDeviceState.get(device.friendly_name!) ?? null,
         state: (() => {
           const raw = latestDeviceState.get(device.friendly_name!);
@@ -490,7 +607,6 @@ colorTemperatureRange: getNumericExposeRange(
     return;
   }
 
-
   if (request.method === 'GET' && url.pathname === '/rooms') {
     sendJson(response, 200, { rooms: roomSummaries() });
     return;
@@ -507,8 +623,8 @@ colorTemperatureRange: getNumericExposeRange(
       }
 
       if (typeof parsed !== 'object' || parsed === null ||
-          Array.isArray(parsed) ||
-          typeof (parsed as Record<string, unknown>).name !== 'string') {
+        Array.isArray(parsed) ||
+        typeof (parsed as Record<string, unknown>).name !== 'string') {
         sendJson(response, 400, { error: 'room_name_required' });
         return;
       }
@@ -521,7 +637,7 @@ colorTemperatureRange: getNumericExposeRange(
       }
 
       if (roomStore.rooms.some((room) =>
-          room.name.toLowerCase() === name.toLowerCase())) {
+        room.name.toLowerCase() === name.toLowerCase())) {
         sendJson(response, 409, { error: 'room_name_exists' });
         return;
       }
@@ -575,16 +691,16 @@ colorTemperatureRange: getNumericExposeRange(
       }
 
       if (typeof parsed !== 'object' || parsed === null ||
-          Array.isArray(parsed) ||
-          !Object.prototype.hasOwnProperty.call(parsed, 'roomId')) {
+        Array.isArray(parsed) ||
+        !Object.prototype.hasOwnProperty.call(parsed, 'roomId')) {
         sendJson(response, 400, { error: 'room_id_required' });
         return;
       }
 
       const roomId = (parsed as Record<string, unknown>).roomId;
       if (roomId !== null &&
-          (typeof roomId !== 'string' ||
-           !roomStore.rooms.some((room) => room.id === roomId))) {
+        (typeof roomId !== 'string' ||
+          !roomStore.rooms.some((room) => room.id === roomId))) {
         sendJson(response, 400, { error: 'invalid_room_id' });
         return;
       }
