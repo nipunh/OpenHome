@@ -30,6 +30,10 @@ import {
 const DEFAULT_API_URL = "http://192.168.1.207:3001/";
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<"Home" | "Devices" | "Settings">(
+    "Home",
+  );
+
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [devices, setDevices] = useState<Device[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -252,66 +256,6 @@ export default function App() {
             </Pressable>
           </View>
 
-          <View style={styles.statusCard}>
-            <View style={styles.statusTop}>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: mqttConnected ? "#38A878" : "#D99036" },
-                ]}
-              />
-              <Text style={styles.statusTitle}>
-                {mqttConnected ? "System connected" : "System disconnected"}
-              </Text>
-            </View>
-            <Text style={styles.statusDescription}>
-              {mqttConnected
-                ? `${onlineCount} online · ${devices.length} ${
-                    devices.length === 1 ? "device" : "devices"
-                  } discovered`
-                : "Check your API address and MQTT connection."}
-            </Text>
-            {lastUpdated ? (
-              <Text style={styles.updatedText}>Updated {lastUpdated}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Pair New Device</Text>
-            <Text style={styles.muted}>
-              Enable pairing, then put your Zigbee device into pairing mode.
-            </Text>
-
-            <Pressable
-              style={[
-                styles.primaryButton,
-                pairing && styles.dangerButton,
-                pairingBusy && styles.disabledButton,
-              ]}
-              onPress={handlePairing}
-              disabled={pairingBusy}
-            >
-              {pairingBusy ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  {pairing ? "Stop Pairing" : "Start Pairing"}
-                </Text>
-              )}
-            </Pressable>
-
-            {pairing && (
-              <Text style={styles.muted}>
-                Pairing window: {Math.floor(pairingSeconds / 60)}:
-                {String(pairingSeconds % 60).padStart(2, "0")} remaining
-              </Text>
-            )}
-
-            {!!pairingMessage && (
-              <Text style={styles.muted}>{pairingMessage}</Text>
-            )}
-          </View>
-
           {error ? (
             <View style={styles.errorCard}>
               <Text style={styles.errorTitle}>Connection issue</Text>
@@ -319,317 +263,435 @@ export default function App() {
             </View>
           ) : null}
 
-          <View style={styles.settingsCard}>
-            <Text style={styles.settingsTitle}>Rooms</Text>
-            <Text style={styles.settingsDescription}>
-              Create rooms, then assign each device below.
-            </Text>
-            <View
-              style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
-            >
-              <View style={{ flex: 1 }}>
-                <TextInput
-                  value={newRoomName}
-                  onChangeText={setNewRoomName}
-                  placeholder="New room name"
-                  placeholderTextColor="#8B928D"
-                  autoCapitalize="words"
-                  returnKeyType="done"
-                  onSubmitEditing={() => void createRoom()}
-                  style={styles.urlInput}
-                  accessibilityLabel="New room name"
-                />
-              </View>
-              <Pressable
-                onPress={() => void createRoom()}
-                disabled={roomBusy || !newRoomName.trim()}
-                style={[
-                  styles.connectButton,
-                  {
-                    paddingHorizontal: 15,
-                    marginTop: 0,
-                    opacity: roomBusy || !newRoomName.trim() ? 0.55 : 1,
-                  },
-                ]}
-                accessibilityRole="button"
-              >
-                <Text style={styles.connectButtonText}>
-                  {roomBusy ? "Saving…" : "Add"}
-                </Text>
-              </Pressable>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
-                marginTop: 12,
-              }}
-            >
-              {rooms.map((room) => (
-                <View
-                  key={room.id}
-                  style={{
-                    backgroundColor: "#E6F1E9",
-                    borderRadius: 12,
-                    paddingHorizontal: 11,
-                    paddingVertical: 7,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#26765A",
-                      fontSize: 12,
-                      fontWeight: "700",
-                    }}
-                  >
-                    {room.name} · {room.deviceCount}
+          {activeTab === "Home" && (
+            <View>
+              <View style={styles.statusCard}>
+                <View style={styles.statusTop}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: mqttConnected ? "#38A878" : "#D99036" },
+                    ]}
+                  />
+                  <Text style={styles.statusTitle}>
+                    {mqttConnected ? "System connected" : "System disconnected"}
                   </Text>
                 </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.sectionHeading}>
-            <Text style={styles.sectionTitle}>Your devices</Text>
-            <Text style={styles.deviceCount}>{devices.length}</Text>
-          </View>
-
-          {loading && devices.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <ActivityIndicator size="large" color="#26765A" />
-              <Text style={styles.emptyTitle}>Finding your devices…</Text>
-            </View>
-          ) : devices.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>⌂</Text>
-              <Text style={styles.emptyTitle}>No devices yet</Text>
-              <Text style={styles.emptyDescription}>
-                Start Zigbee2MQTT and the OpenHome API, then refresh this page.
+                <Text style={styles.statusDescription}>
+                  {mqttConnected
+                    ? `${onlineCount} online · ${devices.length} ${
+                        devices.length === 1 ? "device" : "devices"
+                      } discovered`
+                    : "Check your API address and MQTT connection."}
+                </Text>
+                {lastUpdated ? (
+                  <Text style={styles.updatedText}>Updated {lastUpdated}</Text>
+                ) : null}
+              </View>
+                  <View style={styles.settingsCard}>
+              <Text style={styles.settingsTitle}>Rooms</Text>
+              <Text style={styles.settingsDescription}>
+                Create rooms, then assign each device below.
               </Text>
-            </View>
-          ) : (
-            displayDevices.map((device) => {
-              const isBusy = busyDevices.includes(device.id);
-              const isOn = Boolean(device.state.on);
-              const brightness = device.state.brightness ?? 254;
-              const colorTemp = device.state.color_temp ?? 300;
-              const kelvin = Math.round(1000000 / colorTemp / 100) * 100;
-
-              return (
-                <View key={device.id} style={styles.deviceCard}>
-                  <View style={styles.deviceHeader}>
-                    <View style={[styles.bulbIcon, isOn && styles.bulbIconOn]}>
-                      <Text style={styles.bulbEmoji}>✳</Text>
-                    </View>
-                    <View style={styles.deviceInfo}>
-                      <Text style={styles.deviceName}>{device.name}</Text>
-                      <Text style={styles.deviceModel}>
-                        {[device.vendor, device.model]
-                          .filter(Boolean)
-                          .join(" · ") || "Smart device"}
-                      </Text>
-                      <View style={styles.deviceStatusRow}>
-                        <View
-                          style={[
-                            styles.miniDot,
-                            {
-                              backgroundColor:
-                                device.availability === "online"
-                                  ? "#38A878"
-                                  : "#B7B9B7",
-                            },
-                          ]}
-                        />
-                        <Text style={styles.deviceStatus}>
-                          {device.availability === "online"
-                            ? isOn
-                              ? "On"
-                              : "Off"
-                            : device.availability}
-                        </Text>
-                      </View>
-                    </View>
-                    {isBusy ? (
-                      <ActivityIndicator color="#26765A" />
-                    ) : device.supportsOnOff ? (
-                      <Switch
-                        value={isOn}
-                        onValueChange={(value) =>
-                          void sendCommand(device, {
-                            state: value ? "ON" : "OFF",
-                          })
-                        }
-                        trackColor={{ false: "#D8DCD8", true: "#8CC9AE" }}
-                        thumbColor={isOn ? "#26765A" : "#FFFFFF"}
-                        accessibilityLabel={`Turn ${device.name} ${
-                          isOn ? "off" : "on"
-                        }`}
-                      />
-                    ) : null}
-                  </View>
-
-                  <View style={{ marginTop: 13, marginBottom: 5 }}>
-                    <Text style={styles.brightnessTitle}>
-                      Room ·{" "}
-                      {rooms.find((room) => room.id === device.roomId)?.name ??
-                        "Unassigned"}
-                    </Text>
-                    <View
+              <View
+                style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+              >
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    value={newRoomName}
+                    onChangeText={setNewRoomName}
+                    placeholder="New room name"
+                    placeholderTextColor="#8B928D"
+                    autoCapitalize="words"
+                    returnKeyType="done"
+                    onSubmitEditing={() => void createRoom()}
+                    style={styles.urlInput}
+                    accessibilityLabel="New room name"
+                  />
+                </View>
+                <Pressable
+                  onPress={() => void createRoom()}
+                  disabled={roomBusy || !newRoomName.trim()}
+                  style={[
+                    styles.connectButton,
+                    {
+                      paddingHorizontal: 15,
+                      marginTop: 0,
+                      opacity: roomBusy || !newRoomName.trim() ? 0.55 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.connectButtonText}>
+                    {roomBusy ? "Saving…" : "Add"}
+                  </Text>
+                </Pressable>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
+                {rooms.map((room) => (
+                  <View
+                    key={room.id}
+                    style={{
+                      backgroundColor: "#E6F1E9",
+                      borderRadius: 12,
+                      paddingHorizontal: 11,
+                      paddingVertical: 7,
+                    }}
+                  >
+                    <Text
                       style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        gap: 7,
-                        marginTop: 8,
+                        color: "#26765A",
+                        fontSize: 12,
+                        fontWeight: "700",
                       }}
                     >
-                      <Pressable
-                        onPress={() => void assignRoom(device, null)}
-                        disabled={roomBusy}
-                        style={{
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
-                          paddingVertical: 7,
-                          backgroundColor:
-                            device.roomId === null ? "#26765A" : "#F0F2EE",
-                          opacity: roomBusy ? 0.6 : 1,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: "600",
-                            color:
-                              device.roomId === null ? "#FFFFFF" : "#526057",
-                          }}
-                        >
-                          Unassigned
-                        </Text>
-                      </Pressable>
-                      {rooms.map((room) => (
-                        <Pressable
-                          key={room.id}
-                          onPress={() => void assignRoom(device, room.id)}
-                          disabled={roomBusy}
-                          style={{
-                            borderRadius: 10,
-                            paddingHorizontal: 10,
-                            paddingVertical: 7,
-                            backgroundColor:
-                              device.roomId === room.id ? "#26765A" : "#F0F2EE",
-                            opacity: roomBusy ? 0.6 : 1,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              fontWeight: "600",
-                              color:
-                                device.roomId === room.id
-                                  ? "#FFFFFF"
-                                  : "#526057",
-                            }}
-                          >
-                            {room.name}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
+                      {room.name} · {room.deviceCount}
+                    </Text>
                   </View>
+                ))}
+              </View>
 
-                  {device.supportsBrightness ? (
-                    <View style={styles.brightnessArea}>
-                      <View style={styles.brightnessLabels}>
-                        <Text style={styles.brightnessTitle}>Brightness</Text>
-                        <Text style={styles.brightnessValue}>
-                          {Math.round((brightness / 254) * 100)}%
-                        </Text>
-                      </View>
-                      <Slider
-                        minimumValue={device.brightnessRange?.min ?? 0}
-                        maximumValue={device.brightnessRange?.max ?? 254}
-                        step={1}
-                        value={brightness}
-                        disabled={isBusy}
-                        minimumTrackTintColor="#26765A"
-                        maximumTrackTintColor="#E0E5E0"
-                        thumbTintColor="#26765A"
-                        onSlidingComplete={(value) =>
-                          void sendCommand(device, {
-                            brightness: Math.round(value),
-                          })
-                        }
-                        accessibilityLabel={`${device.name} brightness`}
-                      />
-                    </View>
-                  ) : null}
 
-                  {device.supportsColorTemperature ? (
-                    <View style={styles.brightnessArea}>
-                      <View style={styles.brightnessLabels}>
-                        <Text style={styles.brightnessTitle}>Light warmth</Text>
-                        <Text style={styles.brightnessValue}>
-                          {kelvin.toLocaleString()} K
-                        </Text>
-                      </View>
-                      <Slider
-                        minimumValue={device.colorTemperatureRange?.min ?? 153}
-                        maximumValue={device.colorTemperatureRange?.max ?? 454}
-                        step={1}
-                        value={colorTemp}
-                        disabled={isBusy}
-                        minimumTrackTintColor="#26765A"
-                        maximumTrackTintColor="#E0E5E0"
-                        thumbTintColor="#26765A"
-                        onSlidingComplete={(value) =>
-                          void sendCommand(device, {
-                            color_temp: Math.round(value),
-                          })
-                        }
-                        accessibilityLabel={`${device.name} light warmth`}
-                      />
-                      <View style={styles.brightnessLabels}>
-                        <Text style={styles.deviceStatus}>Cool white</Text>
-                        <Text style={styles.deviceStatus}>Warm white</Text>
-                      </View>
-                    </View>
-                  ) : null}
-                </View>
-              );
-            })
+            </View>
+            </View>
           )}
 
-          <View style={styles.settingsCard}>
-            <Text style={styles.settingsTitle}>Connection settings</Text>
-            <Text style={styles.settingsDescription}>
-              Address of the computer running OpenHome API
-            </Text>
-            <TextInput
-              value={apiUrl}
-              onChangeText={setApiUrl}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              placeholder="http://192.168.1.10:3000"
-              placeholderTextColor="#8B928D"
-              style={styles.urlInput}
-              accessibilityLabel="OpenHome API address"
-            />
-            <Pressable
-              onPress={() => void refresh()}
-              style={styles.connectButton}
-              accessibilityRole="button"
-            >
-              <Text style={styles.connectButtonText}>Save and connect</Text>
-            </Pressable>
-            <Text style={styles.hint}>
-              Simulator: use 127.0.0.1. Physical iPhone: use your Mac’s local
-              network IP. Keep both devices on the same network.
-            </Text>
-          </View>
+          {activeTab === "Devices" && (
+            <View>
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Pair New Device</Text>
+                <Text style={styles.muted}>
+                  Enable pairing, then put your Zigbee device into pairing mode.
+                </Text>
+
+                <Pressable
+                  style={[
+                    styles.primaryButton,
+                    pairing && styles.dangerButton,
+                    pairingBusy && styles.disabledButton,
+                  ]}
+                  onPress={handlePairing}
+                  disabled={pairingBusy}
+                >
+                  {pairingBusy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>
+                      {pairing ? "Stop Pairing" : "Start Pairing"}
+                    </Text>
+                  )}
+                </Pressable>
+
+                {pairing && (
+                  <Text style={styles.muted}>
+                    Pairing window: {Math.floor(pairingSeconds / 60)}:
+                    {String(pairingSeconds % 60).padStart(2, "0")} remaining
+                  </Text>
+                )}
+
+                {!!pairingMessage && (
+                  <Text style={styles.muted}>{pairingMessage}</Text>
+                )}
+              </View>
+              <View style={styles.sectionHeading}>
+                <Text style={styles.sectionTitle}>Your devices</Text>
+                <Text style={styles.deviceCount}>{devices.length}</Text>
+              </View>
+
+              {loading && devices.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <ActivityIndicator size="large" color="#26765A" />
+                  <Text style={styles.emptyTitle}>Finding your devices…</Text>
+                </View>
+              ) : devices.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyIcon}>⌂</Text>
+                  <Text style={styles.emptyTitle}>No devices yet</Text>
+                  <Text style={styles.emptyDescription}>
+                    Start Zigbee2MQTT and the OpenHome API, then refresh this
+                    page.
+                  </Text>
+                </View>
+              ) : (
+                displayDevices.map((device) => {
+                  const isBusy = busyDevices.includes(device.id);
+                  const isOn = Boolean(device.state.on);
+                  const brightness = device.state.brightness ?? 254;
+                  const colorTemp = device.state.color_temp ?? 300;
+                  const kelvin = Math.round(1000000 / colorTemp / 100) * 100;
+
+                  return (
+                    <View key={device.id} style={styles.deviceCard}>
+                      <View style={styles.deviceHeader}>
+                        <View
+                          style={[styles.bulbIcon, isOn && styles.bulbIconOn]}
+                        >
+                          <Text style={styles.bulbEmoji}>✳</Text>
+                        </View>
+                        <View style={styles.deviceInfo}>
+                          <Text style={styles.deviceName}>{device.name}</Text>
+                          <Text style={styles.deviceModel}>
+                            {[device.vendor, device.model]
+                              .filter(Boolean)
+                              .join(" · ") || "Smart device"}
+                          </Text>
+                          <View style={styles.deviceStatusRow}>
+                            <View
+                              style={[
+                                styles.miniDot,
+                                {
+                                  backgroundColor:
+                                    device.availability === "online"
+                                      ? "#38A878"
+                                      : "#B7B9B7",
+                                },
+                              ]}
+                            />
+                            <Text style={styles.deviceStatus}>
+                              {device.availability === "online"
+                                ? isOn
+                                  ? "On"
+                                  : "Off"
+                                : device.availability}
+                            </Text>
+                          </View>
+                        </View>
+                        {isBusy ? (
+                          <ActivityIndicator color="#26765A" />
+                        ) : device.supportsOnOff ? (
+                          <Switch
+                            value={isOn}
+                            onValueChange={(value) =>
+                              void sendCommand(device, {
+                                state: value ? "ON" : "OFF",
+                              })
+                            }
+                            trackColor={{ false: "#D8DCD8", true: "#8CC9AE" }}
+                            thumbColor={isOn ? "#26765A" : "#FFFFFF"}
+                            accessibilityLabel={`Turn ${device.name} ${
+                              isOn ? "off" : "on"
+                            }`}
+                          />
+                        ) : null}
+                      </View>
+
+                      <View style={{ marginTop: 13, marginBottom: 5 }}>
+                        <Text style={styles.brightnessTitle}>
+                          Room ·{" "}
+                          {rooms.find((room) => room.id === device.roomId)
+                            ?.name ?? "Unassigned"}
+                        </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: 7,
+                            marginTop: 8,
+                          }}
+                        >
+                          <Pressable
+                            onPress={() => void assignRoom(device, null)}
+                            disabled={roomBusy}
+                            style={{
+                              borderRadius: 10,
+                              paddingHorizontal: 10,
+                              paddingVertical: 7,
+                              backgroundColor:
+                                device.roomId === null ? "#26765A" : "#F0F2EE",
+                              opacity: roomBusy ? 0.6 : 1,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                fontWeight: "600",
+                                color:
+                                  device.roomId === null
+                                    ? "#FFFFFF"
+                                    : "#526057",
+                              }}
+                            >
+                              Unassigned
+                            </Text>
+                          </Pressable>
+                          {rooms.map((room) => (
+                            <Pressable
+                              key={room.id}
+                              onPress={() => void assignRoom(device, room.id)}
+                              disabled={roomBusy}
+                              style={{
+                                borderRadius: 10,
+                                paddingHorizontal: 10,
+                                paddingVertical: 7,
+                                backgroundColor:
+                                  device.roomId === room.id
+                                    ? "#26765A"
+                                    : "#F0F2EE",
+                                opacity: roomBusy ? 0.6 : 1,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: "600",
+                                  color:
+                                    device.roomId === room.id
+                                      ? "#FFFFFF"
+                                      : "#526057",
+                                }}
+                              >
+                                {room.name}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      </View>
+
+                      {device.supportsBrightness ? (
+                        <View style={styles.brightnessArea}>
+                          <View style={styles.brightnessLabels}>
+                            <Text style={styles.brightnessTitle}>
+                              Brightness
+                            </Text>
+                            <Text style={styles.brightnessValue}>
+                              {Math.round((brightness / 254) * 100)}%
+                            </Text>
+                          </View>
+                          <Slider
+                            minimumValue={device.brightnessRange?.min ?? 0}
+                            maximumValue={device.brightnessRange?.max ?? 254}
+                            step={1}
+                            value={brightness}
+                            disabled={isBusy}
+                            minimumTrackTintColor="#26765A"
+                            maximumTrackTintColor="#E0E5E0"
+                            thumbTintColor="#26765A"
+                            onSlidingComplete={(value) =>
+                              void sendCommand(device, {
+                                brightness: Math.round(value),
+                              })
+                            }
+                            accessibilityLabel={`${device.name} brightness`}
+                          />
+                        </View>
+                      ) : null}
+
+                      {device.supportsColorTemperature ? (
+                        <View style={styles.brightnessArea}>
+                          <View style={styles.brightnessLabels}>
+                            <Text style={styles.brightnessTitle}>
+                              Light warmth
+                            </Text>
+                            <Text style={styles.brightnessValue}>
+                              {kelvin.toLocaleString()} K
+                            </Text>
+                          </View>
+                          <Slider
+                            minimumValue={
+                              device.colorTemperatureRange?.min ?? 153
+                            }
+                            maximumValue={
+                              device.colorTemperatureRange?.max ?? 454
+                            }
+                            step={1}
+                            value={colorTemp}
+                            disabled={isBusy}
+                            minimumTrackTintColor="#26765A"
+                            maximumTrackTintColor="#E0E5E0"
+                            thumbTintColor="#26765A"
+                            onSlidingComplete={(value) =>
+                              void sendCommand(device, {
+                                color_temp: Math.round(value),
+                              })
+                            }
+                            accessibilityLabel={`${device.name} light warmth`}
+                          />
+                          <View style={styles.brightnessLabels}>
+                            <Text style={styles.deviceStatus}>Cool white</Text>
+                            <Text style={styles.deviceStatus}>Warm white</Text>
+                          </View>
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          )}
+
+          {activeTab === "Settings" && (
+              <View style={styles.settingsCard}>
+                <Text style={styles.settingsTitle}>Connection settings</Text>
+                <Text style={styles.settingsDescription}>
+                  Address of the computer running OpenHome API
+                </Text>
+                <TextInput
+                  value={apiUrl}
+                  onChangeText={setApiUrl}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  placeholder="http://192.168.1.10:3000"
+                  placeholderTextColor="#8B928D"
+                  style={styles.urlInput}
+                  accessibilityLabel="OpenHome API address"
+                />
+                <Pressable
+                  onPress={() => void refresh()}
+                  style={styles.connectButton}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.connectButtonText}>Save and connect</Text>
+                </Pressable>
+                <Text style={styles.hint}>
+                  Simulator: use 127.0.0.1. Physical iPhone: use your Mac’s
+                  local network IP. Keep both devices on the same network.
+                </Text>
+              </View>
+          )}
 
           <Text style={styles.footer}>OPEN SOURCE · LOCAL FIRST</Text>
         </ScrollView>
+
+        <View style={styles.tabBar}>
+          {(
+            [
+              { name: "Home", icon: "⌂" },
+              { name: "Devices", icon: "▦" },
+              { name: "Settings", icon: "⚙" },
+            ] as const
+          ).map((tab) => {
+            const selected = activeTab === tab.name;
+
+            return (
+              <Pressable
+                key={tab.name}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setActiveTab(tab.name)}
+                style={styles.tabItem}
+              >
+                <Text
+                  style={[styles.tabIcon, selected && styles.tabIconSelected]}
+                >
+                  {tab.icon}
+                </Text>
+                <Text
+                  style={[styles.tabLabel, selected && styles.tabLabelSelected]}
+                >
+                  {tab.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -904,7 +966,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginTop: 12,
   },
-    card: {
+  card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
@@ -941,6 +1003,37 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E9ECE7",
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 5,
+    gap: 4,
+  },
+  tabIcon: {
+    fontSize: 21,
+    color: "#8B928D",
+  },
+  tabIconSelected: {
+    color: "#26765A",
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#8B928D",
+  },
+  tabLabelSelected: {
+    color: "#26765A",
+    fontWeight: "800",
   },
   footer: {
     color: "#9AA199",
